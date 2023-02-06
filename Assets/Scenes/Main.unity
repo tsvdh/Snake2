@@ -2728,8 +2728,8 @@ Tilemap:
   - first: {x: 2, y: -3, z: 0}
     second:
       serializedVersion: 2
-      m_TileIndex: 3
-      m_TileSpriteIndex: 3
+      m_TileIndex: 5
+      m_TileSpriteIndex: 1
       m_TileMatrixIndex: 0
       m_TileColorIndex: 0
       m_TileObjectToInstantiateIndex: 65535
@@ -2799,7 +2799,7 @@ Tilemap:
     second:
       serializedVersion: 2
       m_TileIndex: 2
-      m_TileSpriteIndex: 2
+      m_TileSpriteIndex: 3
       m_TileMatrixIndex: 0
       m_TileColorIndex: 0
       m_TileObjectToInstantiateIndex: 65535
@@ -2839,7 +2839,7 @@ Tilemap:
     second:
       serializedVersion: 2
       m_TileIndex: 0
-      m_TileSpriteIndex: 1
+      m_TileSpriteIndex: 2
       m_TileMatrixIndex: 0
       m_TileColorIndex: 0
       m_TileObjectToInstantiateIndex: 65535
@@ -3103,21 +3103,21 @@ Tilemap:
     m_Data: {fileID: 11400000, guid: 9bea0a78f9516a14f97b142485d00c8c, type: 2}
   - m_RefCount: 1
     m_Data: {fileID: 11400000, guid: 536313a341455df44897e7fec74243d3, type: 2}
-  - m_RefCount: 1
-    m_Data: {fileID: 11400000, guid: e0defda7b51df8248ba7460ba4e2ac9b, type: 2}
-  - m_RefCount: 52
-    m_Data: {fileID: 11400000, guid: ed6e968f0522c584f939311ca2cb5174, type: 2}
   - m_RefCount: 0
     m_Data: {fileID: 0}
+  - m_RefCount: 52
+    m_Data: {fileID: 11400000, guid: ed6e968f0522c584f939311ca2cb5174, type: 2}
+  - m_RefCount: 1
+    m_Data: {fileID: 11400000, guid: e0defda7b51df8248ba7460ba4e2ac9b, type: 2}
   m_TileSpriteArray:
   - m_RefCount: 0
     m_Data: {fileID: 0}
   - m_RefCount: 1
+    m_Data: {fileID: 21300000, guid: c3693424cea89ae4db599aa62065f0df, type: 3}
+  - m_RefCount: 1
     m_Data: {fileID: 21300000, guid: 27ba7e141a9781d46afb412a05c9817b, type: 3}
   - m_RefCount: 1
     m_Data: {fileID: 21300000, guid: acc38b9c8a19b2f4ea0a8ada314eabf1, type: 3}
-  - m_RefCount: 1
-    m_Data: {fileID: 21300000, guid: c3693424cea89ae4db599aa62065f0df, type: 3}
   - m_RefCount: 52
     m_Data: {fileID: 21300000, guid: 90c2da889e7e6414b9752cfc7f4fc154, type: 3}
   - m_RefCount: 3

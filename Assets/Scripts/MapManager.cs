@@ -16,7 +16,7 @@ public class MapManager : MonoBehaviour
     private void Awake()
     {
         _tilemap = GameObject.Find("Grid/Objects").GetComponent<Tilemap>();
-        
+
         _tileData = new Dictionary<TileBase, TileDataHolder>();
         foreach (TileDataHolder dataHolder in dataHolders)
         {

@@ -17,19 +17,42 @@ public class AppleManager : MonoBehaviour
         _mapManager = FindObjectOfType<MapManager>();
     }
 
+    private void Start()
+    {
+        Update();
+    }
+
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.T))
-        {
+        if (!AppleExists())
             SpawnApple();
+    }
+
+    public bool AppleExists()
+    {
+        BoundsInt bounds = _tilemap.cellBounds;
+        for (int x = bounds.xMin; x < bounds.xMax; x++)
+        {
+            for (int y = bounds.yMin; y < bounds.yMax; y++)
+            {
+                TileBase tile = _tilemap.GetTile(new Vector3Int(x, y));
+                if (tile && tile.name.Equals("Apple"))
+                    return true;
+            }
         }
+
+        return false;
     }
 
     public void SpawnApple()
     {
-        while (true)
+        BoundsInt bounds = _tilemap.cellBounds;
+        
+        // for loop to prevent infinite looping
+        for (var i = 0; i < 10000; i++)
         {
-            var location = new Vector3Int(Random.Range(-7, 7), Random.Range(-7, 7));
+            var location = new Vector3Int(Random.Range(bounds.xMin, bounds.xMax), 
+                                          Random.Range(bounds.yMin, bounds.yMax));
             TileBase tile = _tilemap.GetTile(location);
 
             if (!tile)
