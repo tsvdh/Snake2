@@ -6,11 +6,9 @@ using UnityEngine.Tilemaps;
 
 public class MapManager : MonoBehaviour
 {
+    [SerializeField] private List<TileDataHolder> dataHolders;
+    
     private Tilemap _tilemap;
-
-    [SerializeField] 
-    private List<TileDataHolder> dataHolders;
-
     private Dictionary<TileBase, TileDataHolder> _tileData;
 
     private void Awake()
@@ -37,7 +35,8 @@ public class MapManager : MonoBehaviour
             
             // FindObjectOfType<AppleManager>().SpawnApple(gridPosition);
             
-            // TileBase tile = tilemap.GetTile(gridPosition);
+            TileBase tile = _tilemap.GetTile(gridPosition);
+            
             // print($"Clicked at {gridPosition} on {tile}");
         }
     }
@@ -49,6 +48,8 @@ public class MapManager : MonoBehaviour
 
     public TileDataHolder GetTileData(TileBase tileBase)
     {
-        return _tileData[tileBase];
+        return tileBase
+            ? _tileData[tileBase] 
+            : ScriptableObject.CreateInstance<TileDataHolder>();
     }
 }

@@ -5,12 +5,11 @@ using UnityEngine.Tilemaps;
 
 namespace TileData
 {
-    
     [CreateAssetMenu]
     public class TileDataHolder : ScriptableObject
     {
         public TileBase[] tiles;
 
-        public bool grow, collide;
+        public bool grow, collide, snake;
     }
 }
