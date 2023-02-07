@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using TileData;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -18,12 +19,14 @@ public class SnakeManager : MonoBehaviour
     private Tilemap _tilemap; 
     private MapManager _mapManager;
     private LinkedList<SnakePart> _parts;
+    private TileBase _bodyTile;
 
     private void Awake()
     {
         _tilemap = GameObject.Find("Grid/Objects").GetComponent<Tilemap>();
         _mapManager = FindObjectOfType<MapManager>();
         _parts = new LinkedList<SnakePart>();
+        _bodyTile = Resources.Load<TileBase>("Tiles/Body");
     }
 
     private void Start()
@@ -41,12 +44,8 @@ public class SnakeManager : MonoBehaviour
                 if (tile && _mapManager.GetTileData(tile).snake && tile.name.Equals("Tail"))
                 {
                     tailPos = pos;
-                    break;
                 }
             }
-
-            if (tailPos.HasValue)
-                break;
         }
 
         if (!tailPos.HasValue)
@@ -72,8 +71,20 @@ public class SnakeManager : MonoBehaviour
     private void Update()
     {
         // listen to input
+        SnakePart head = _parts.Last.Value;
         
+        if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow))
+            head.Direction = Vector3Int.up;
+        else if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow))
+            head.Direction = Vector3Int.left;
+        else if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow))
+            head.Direction = Vector3Int.down;
+        else if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow))
+            head.Direction = Vector3Int.right;
         
+        _parts.Last.Value = head;
+        
+        // check if time for new move
         _timeSinceLastMove += Time.deltaTime;
         if (_timeSinceLastMove < moveInterval)
             return;
@@ -82,31 +93,47 @@ public class SnakeManager : MonoBehaviour
 
         // check new head pos for actions (collision, apple)
         Vector3Int newHeadPos = _parts.Last.Value.Pos + _parts.Last.Value.Direction;
-        if (_mapManager.GetTileData(newHeadPos).collide)
+        TileDataHolder dataHolder = _mapManager.GetTileData(newHeadPos);
+        if (dataHolder.collide)
         {
             moveInterval = 1000;
+            print("Game over!");
             return;
         }
 
+        // clear snake tiles
         foreach (SnakePart part in _parts)
         {
             _tilemap.SetTile(part.Pos, null);
         }
         
-        LinkedListNode<SnakePart> curNode = _parts.Last;
-        while (curNode != null)
+        if (dataHolder.grow)
         {
-            SnakePart curPart = curNode.Value;
-
-            curPart.Pos += curPart.Direction;
+            // move only head and add part
+            _parts.AddBefore(_parts.Last, new SnakePart{Direction = head.Direction, Pos = head.Pos, Tile = _bodyTile});
             
-            if (curNode.Next != null)
-                curPart.Direction = curNode.Next.Value.Direction;
+            head.Pos = newHeadPos;
+            _parts.Last.Value = head;
+        }
+        else
+        {
+            // update all snake parts position and rotation
+            LinkedListNode<SnakePart> curNode = _parts.First;
+            while (curNode != null)
+            {
+                SnakePart curPart = curNode.Value;
 
-            curNode.Value = curPart;
-            curNode = curNode.Previous;
+                curPart.Pos += curPart.Direction;
+
+                if (curNode.Next != null)
+                    curPart.Direction = curNode.Next.Value.Direction;
+
+                curNode.Value = curPart;
+                curNode = curNode.Next;
+            }
         }
 
+        // repaint snake on new positions
         foreach (SnakePart part in _parts)
         {
             _tilemap.SetTile(new TileChangeData(
