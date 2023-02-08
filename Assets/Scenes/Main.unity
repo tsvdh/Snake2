@@ -3150,6 +3150,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f933a4232cef4426be425e128be4ca9d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  upButtons: 7700000011010000
+  downButtons: 7300000012010000
+  leftButtons: 6100000014010000
+  rightButtons: 6400000013010000
   moveInterval: 0.2
 --- !u!114 &1350632783
 MonoBehaviour:

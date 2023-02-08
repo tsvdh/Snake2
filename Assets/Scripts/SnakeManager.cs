@@ -12,6 +12,11 @@ public class SnakeManager : MonoBehaviour
         public Vector3Int Direction;
         public TileBase Tile;
     }
+
+    [SerializeField] private List<KeyCode> upButtons;
+    [SerializeField] private List<KeyCode> downButtons;
+    [SerializeField] private List<KeyCode> leftButtons;
+    [SerializeField] private List<KeyCode> rightButtons;
     
     [SerializeField] private float moveInterval;
     private float _timeSinceLastMove;
@@ -20,6 +25,8 @@ public class SnakeManager : MonoBehaviour
     private MapManager _mapManager;
     private LinkedList<SnakePart> _parts;
     private TileBase _bodyTile;
+    private Vector3Int? _firstDirection;
+    private Vector3Int? _secondDirection;
 
     private void Awake()
     {
@@ -71,25 +78,32 @@ public class SnakeManager : MonoBehaviour
     private void Update()
     {
         // listen to input
-        SnakePart head = _parts.Last.Value;
-        
-        if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow))
-            head.Direction = Vector3Int.up;
-        else if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow))
-            head.Direction = Vector3Int.left;
-        else if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow))
-            head.Direction = Vector3Int.down;
-        else if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow))
-            head.Direction = Vector3Int.right;
-        
-        _parts.Last.Value = head;
-        
+        Vector3Int? dir = GetDirectionPressed();
+        if (dir.HasValue)
+        {
+            if (!_firstDirection.HasValue)
+                _firstDirection = dir;
+                
+            else if (!_secondDirection.HasValue)
+                _secondDirection = dir;
+        }
+
         // check if time for new move
         _timeSinceLastMove += Time.deltaTime;
         if (_timeSinceLastMove < moveInterval)
             return;
         
         _timeSinceLastMove = 0;
+        
+        // set new direction of head and set cached press
+        if (_firstDirection.HasValue)
+        {
+            SnakePart head = _parts.Last.Value;
+            head.Direction = _firstDirection.Value;
+            _parts.Last.Value = head;
+        }
+        _firstDirection = _secondDirection;
+        _secondDirection = null;
 
         // check new head pos for actions (collision, apple)
         Vector3Int newHeadPos = _parts.Last.Value.Pos + _parts.Last.Value.Direction;
@@ -110,6 +124,7 @@ public class SnakeManager : MonoBehaviour
         if (dataHolder.grow)
         {
             // move only head and add part
+            SnakePart head = _parts.Last.Value;
             _parts.AddBefore(_parts.Last, new SnakePart{Direction = head.Direction, Pos = head.Pos, Tile = _bodyTile});
             
             head.Pos = newHeadPos;
@@ -168,5 +183,29 @@ public class SnakeManager : MonoBehaviour
             var v when v.Equals(Vector2Int.down) => Quaternion.Euler(0, 0, 270),
             _ => throw new ArgumentException("must be one of the four primary directions", nameof(direction))
         };
+    }
+
+    private Vector3Int? GetDirectionPressed()
+    {
+        bool AnyPressed(List<KeyCode> codes)
+        {
+            foreach (KeyCode code in codes)
+            {
+                if (Input.GetKeyDown(code))
+                    return true;
+            }
+            return false;
+        }
+        
+        if (AnyPressed(upButtons))
+            return Vector3Int.up;
+        if (AnyPressed(leftButtons))
+            return Vector3Int.left;
+        if (AnyPressed(downButtons))
+            return Vector3Int.down;
+        if (AnyPressed(rightButtons))
+            return Vector3Int.right;
+
+        return null;
     }
 }
