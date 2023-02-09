@@ -6,13 +6,12 @@ public class AppleManager : MonoBehaviour
 {
     private Tilemap _tilemap;
     private TileBase _appleTile;
-    private MapManager _mapManager;
+    private Vector3Int _appleLocation;
 
     private void Awake()
     {
         _tilemap = GameObject.Find("Grid/Objects").GetComponent<Tilemap>();
         _appleTile = Resources.Load<TileBase>("Tiles/Apple");
-        _mapManager = FindObjectOfType<MapManager>();
     }
 
     private void Start()
@@ -25,6 +24,11 @@ public class AppleManager : MonoBehaviour
         if (!AppleExists())
             SpawnApple();
     }
+    
+    public Vector3Int GetAppleLocation()
+    {
+        return _appleLocation;
+    }
 
     public bool AppleExists()
     {
@@ -35,14 +39,17 @@ public class AppleManager : MonoBehaviour
             {
                 TileBase tile = _tilemap.GetTile(new Vector3Int(x, y));
                 if (tile && tile.name.Equals("Apple"))
+                {
+                    _appleLocation = new Vector3Int(x, y);
                     return true;
+                }
             }
         }
 
         return false;
     }
 
-    public void SpawnApple()
+    private void SpawnApple()
     {
         BoundsInt bounds = _tilemap.cellBounds;
         

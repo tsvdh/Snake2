@@ -1,18 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
+using SnakeAI;
 using TileData;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
+public struct SnakePart
+{
+    public Vector3Int Pos;
+    public Vector3Int Direction;
+    public TileBase Tile;
+}
+
 public class SnakeManager : MonoBehaviour
 {
-    private struct SnakePart
-    {
-        public Vector3Int Pos;
-        public Vector3Int Direction;
-        public TileBase Tile;
-    }
-
     [SerializeField] private List<KeyCode> upButtons;
     [SerializeField] private List<KeyCode> downButtons;
     [SerializeField] private List<KeyCode> leftButtons;
@@ -23,17 +24,22 @@ public class SnakeManager : MonoBehaviour
     
     private Tilemap _tilemap; 
     private MapManager _mapManager;
+    private AppleManager _appleManager;
     private LinkedList<SnakePart> _parts;
     private TileBase _bodyTile;
     private Vector3Int? _firstDirection;
     private Vector3Int? _secondDirection;
 
+    private MoveStrategy _moveStrategy;
+
     private void Awake()
     {
         _tilemap = GameObject.Find("Grid/Objects").GetComponent<Tilemap>();
         _mapManager = FindObjectOfType<MapManager>();
+        _appleManager = FindObjectOfType<AppleManager>();
         _parts = new LinkedList<SnakePart>();
         _bodyTile = Resources.Load<TileBase>("Tiles/Body");
+        _moveStrategy = new SimpleStrategy();
     }
 
     private void Start()
@@ -78,32 +84,45 @@ public class SnakeManager : MonoBehaviour
     private void Update()
     {
         // listen to input
-        Vector3Int? dir = GetDirectionPressed();
-        if (dir.HasValue)
+        Vector3Int? direction = GetDirectionPressed();
+        if (direction.HasValue)
         {
             if (!_firstDirection.HasValue)
-                _firstDirection = dir;
+                _firstDirection = direction;
                 
             else if (!_secondDirection.HasValue)
-                _secondDirection = dir;
+                _secondDirection = direction;
         }
 
         // check if time for new move
         _timeSinceLastMove += Time.deltaTime;
-        if (_timeSinceLastMove < moveInterval)
+        if (_timeSinceLastMove >= moveInterval)
+            _timeSinceLastMove = 0;
+        else
             return;
-        
-        _timeSinceLastMove = 0;
-        
+
         // set new direction of head and set cached press
         if (_firstDirection.HasValue)
         {
             SnakePart head = _parts.Last.Value;
             head.Direction = _firstDirection.Value;
             _parts.Last.Value = head;
+            
+            _firstDirection = _secondDirection;
+            _secondDirection = null;
         }
-        _firstDirection = _secondDirection;
-        _secondDirection = null;
+        else
+        {
+            long start = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+            Vector3Int dir = _moveStrategy.GetDirection(_parts, _tilemap.cellBounds, _appleManager.GetAppleLocation());
+            long duration = DateTimeOffset.Now.ToUnixTimeMilliseconds() - start;
+            if (duration > 50)
+                print($"Decision took: {duration}");
+
+            SnakePart head = _parts.Last.Value;
+            head.Direction = dir;
+            _parts.Last.Value = head;
+        }
 
         // check new head pos for actions (collision, apple)
         Vector3Int newHeadPos = _parts.Last.Value.Pos + _parts.Last.Value.Direction;
@@ -111,7 +130,7 @@ public class SnakeManager : MonoBehaviour
         if (dataHolder.collide)
         {
             moveInterval = 1000;
-            print("Game over!");
+            print($"Game over! Score: {_parts.Count - 3}");
             return;
         }
 
