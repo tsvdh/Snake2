@@ -27,7 +27,6 @@ public class MapManager : MonoBehaviour
 
     private void Update()
     {
-        
         if (Input.GetMouseButtonDown(0))
         {
             Vector3 mousePos = Camera.allCameras[0].ScreenToWorldPoint(Input.mousePosition);

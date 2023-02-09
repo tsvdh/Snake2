@@ -1,15 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
-namespace SnakeAI
+namespace Snake.Strategy
 {
 public abstract class MoveStrategy
 {
+    public abstract Vector3Int GetDirection(SnakeParts parts, BoundsInt bounds, Vector3Int apple);
+    
     /// <summary>
     /// Returns a 2d array with true on a coordinate if occupied
     /// </summary>
-    protected Dictionary<Vector3Int, bool> GetGrid(LinkedList<SnakePart> parts, BoundsInt bounds)
+    protected static Dictionary<Vector3Int, bool> GetGrid(SnakeParts parts, BoundsInt bounds)
     {
         var grid = new Dictionary<Vector3Int, bool>();
 
@@ -32,27 +35,18 @@ public abstract class MoveStrategy
         return grid;
     }
 
-    protected LinkedList<Vector3Int> GetPossibleDirections(Dictionary<Vector3Int, bool> grid, Vector3Int pos)
+    protected static LinkedList<Vector3Int> GetPossibleDirections(Dictionary<Vector3Int, bool> grid, Vector3Int pos)
     {
         var directions = new LinkedList<Vector3Int>(
             new []{Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right});
 
-        var result = new LinkedList<Vector3Int>();
-
-        foreach (Vector3Int direction in directions)
-        {
-            if (!grid[pos + direction])
-                result.AddLast(direction);
-        }
-
-        return result;
+        return new LinkedList<Vector3Int>(directions.Where(
+            direction => !grid[pos + direction]));
     }
 
     protected static int ManhattanDistance(Vector3Int a, Vector3Int b)
     {
         return Math.Abs(a.x - b.x) + Math.Abs(a.y - b.y);
     }
-
-    public abstract Vector3Int GetDirection(LinkedList<SnakePart> parts, BoundsInt bounds, Vector3Int apple);
 }
 }

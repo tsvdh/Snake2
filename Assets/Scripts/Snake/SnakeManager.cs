@@ -1,35 +1,31 @@
 ﻿using System;
 using System.Collections.Generic;
-using SnakeAI;
+using Snake.Strategy;
 using TileData;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
-public struct SnakePart
-{
-    public Vector3Int Pos;
-    public Vector3Int Direction;
-    public TileBase Tile;
-}
-
+namespace Snake
+{ 
 public class SnakeManager : MonoBehaviour
 {
     [SerializeField] private List<KeyCode> upButtons;
     [SerializeField] private List<KeyCode> downButtons;
     [SerializeField] private List<KeyCode> leftButtons;
     [SerializeField] private List<KeyCode> rightButtons;
-    
+
     [SerializeField] private float moveInterval;
     private float _timeSinceLastMove;
     
-    private Tilemap _tilemap; 
+    private Tilemap _tilemap;
     private MapManager _mapManager;
     private AppleManager _appleManager;
-    private LinkedList<SnakePart> _parts;
+    private SnakeParts _parts;
     private TileBase _bodyTile;
     private Vector3Int? _firstDirection;
     private Vector3Int? _secondDirection;
 
+    [SerializeField] private StrategyType strategyType;
     private MoveStrategy _moveStrategy;
 
     private void Awake()
@@ -37,15 +33,20 @@ public class SnakeManager : MonoBehaviour
         _tilemap = GameObject.Find("Grid/Objects").GetComponent<Tilemap>();
         _mapManager = FindObjectOfType<MapManager>();
         _appleManager = FindObjectOfType<AppleManager>();
-        _parts = new LinkedList<SnakePart>();
+        _parts = new SnakeParts();
         _bodyTile = Resources.Load<TileBase>("Tiles/Body");
-        _moveStrategy = new SimpleStrategy();
+        _moveStrategy = strategyType switch
+        {
+            StrategyType.Simple => new SimpleStrategy(),
+            StrategyType.AStar => new AStarStrategy(),
+            _ => throw new ArgumentOutOfRangeException()
+        };
     }
 
     private void Start()
     {
         Vector3Int? tailPos = null;
-        
+
         // Determine tail position
         BoundsInt bounds = _tilemap.cellBounds;
         for (int x = bounds.xMin; x < bounds.xMax; x++)
@@ -73,10 +74,10 @@ public class SnakeManager : MonoBehaviour
             TileBase tile = _tilemap.GetTile(curPos);
             if (!tile || !_mapManager.GetTileData(tile).snake)
                 break;
-            
+
             var direction = (Vector3Int)QuaternionToDirection(_tilemap.GetTransformMatrix(curPos).rotation);
-            _parts.AddLast(new SnakePart{Pos = curPos, Direction = direction, Tile = tile});
-            
+            _parts.AddLast(new SnakePart { Pos = curPos, Direction = direction, Tile = tile });
+
             curPos += direction;
         }
     }
@@ -84,14 +85,14 @@ public class SnakeManager : MonoBehaviour
     private void Update()
     {
         // listen to input
-        Vector3Int? direction = GetDirectionPressed();
-        if (direction.HasValue)
+        Vector3Int? directionPressed = GetDirectionPressed();
+        if (directionPressed.HasValue)
         {
             if (!_firstDirection.HasValue)
-                _firstDirection = direction;
-                
+                _firstDirection = directionPressed;
+
             else if (!_secondDirection.HasValue)
-                _secondDirection = direction;
+                _secondDirection = directionPressed;
         }
 
         // check if time for new move
@@ -102,30 +103,29 @@ public class SnakeManager : MonoBehaviour
             return;
 
         // set new direction of head and set cached press
+        Vector3Int direction;
+        
         if (_firstDirection.HasValue)
         {
-            SnakePart head = _parts.Last.Value;
-            head.Direction = _firstDirection.Value;
-            _parts.Last.Value = head;
-            
+            direction = _firstDirection.Value;
+
             _firstDirection = _secondDirection;
             _secondDirection = null;
         }
         else
         {
             long start = DateTimeOffset.Now.ToUnixTimeMilliseconds();
-            Vector3Int dir = _moveStrategy.GetDirection(_parts, _tilemap.cellBounds, _appleManager.GetAppleLocation());
+            direction = _moveStrategy.GetDirection(_parts, _tilemap.cellBounds, _appleManager.GetAppleLocation());
             long duration = DateTimeOffset.Now.ToUnixTimeMilliseconds() - start;
-            if (duration > 50)
-                print($"Decision took: {duration}");
-
-            SnakePart head = _parts.Last.Value;
-            head.Direction = dir;
-            _parts.Last.Value = head;
+            print($"Decision took: {duration}");
         }
+        
+        SnakePart head = _parts.Last.Value;
+        head.Direction = direction;
+        _parts.Last.Value = head;
 
         // check new head pos for actions (collision, apple)
-        Vector3Int newHeadPos = _parts.Last.Value.Pos + _parts.Last.Value.Direction;
+        Vector3Int newHeadPos = _parts.Last.Value.Pos + direction;
         TileDataHolder dataHolder = _mapManager.GetTileData(newHeadPos);
         if (dataHolder.collide)
         {
@@ -139,33 +139,18 @@ public class SnakeManager : MonoBehaviour
         {
             _tilemap.SetTile(part.Pos, null);
         }
-        
+
         if (dataHolder.grow)
         {
             // move only head and add part
-            SnakePart head = _parts.Last.Value;
-            _parts.AddBefore(_parts.Last, new SnakePart{Direction = head.Direction, Pos = head.Pos, Tile = _bodyTile});
-            
+            _parts.AddBefore(_parts.Last,
+                new SnakePart { Direction = head.Direction, Pos = head.Pos, Tile = _bodyTile });
+
             head.Pos = newHeadPos;
             _parts.Last.Value = head;
         }
         else
-        {
-            // update all snake parts position and rotation
-            LinkedListNode<SnakePart> curNode = _parts.First;
-            while (curNode != null)
-            {
-                SnakePart curPart = curNode.Value;
-
-                curPart.Pos += curPart.Direction;
-
-                if (curNode.Next != null)
-                    curPart.Direction = curNode.Next.Value.Direction;
-
-                curNode.Value = curPart;
-                curNode = curNode.Next;
-            }
-        }
+            _parts.MoveInPlace();
 
         // repaint snake on new positions
         foreach (SnakePart part in _parts)
@@ -213,9 +198,10 @@ public class SnakeManager : MonoBehaviour
                 if (Input.GetKeyDown(code))
                     return true;
             }
+
             return false;
         }
-        
+
         if (AnyPressed(upButtons))
             return Vector3Int.up;
         if (AnyPressed(leftButtons))
@@ -227,4 +213,5 @@ public class SnakeManager : MonoBehaviour
 
         return null;
     }
+}
 }
