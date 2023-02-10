@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 using Utils;
@@ -13,20 +14,32 @@ public class AStarStrategy : MoveStrategy
     private TileBase _emptyTile;
     private TileBase _pathTile;
 
-    public AStarStrategy()
+    private BoundsInt _bounds;
+    private Queue<SnakePart> _path;
+
+    public AStarStrategy(BoundsInt bounds)
     {
-        _tilemap = GameObject.Find("Grid/Base").GetComponent<Tilemap>();
-        _emptyTile = Resources.Load<TileBase>("Tiles/Empty");
+        _tilemap = GameObject.Find("Grid/Indicators").GetComponent<Tilemap>();
         _pathTile = Resources.Load<TileBase>("Tiles/Path");
+        _bounds = bounds;
+        _path = new Queue<SnakePart>();
     }
 
     public override Vector3Int GetDirection(SnakeParts parts, BoundsInt bounds, Vector3Int apple)
     {
+        // if path exists return first step
+        if (_path.Count > 0)
+        {
+            PaintPath(2);
+            return _path.Dequeue().Direction;
+        }
+
+        // else compute new path
         var options = new PriorityQueue<Tuple<SnakeParts, SnakeParts>, int>();
         int distance = ManhattanDistance(parts.Last.Value.Pos, apple);
         options.Enqueue(new Tuple<SnakeParts, SnakeParts>(parts, new SnakeParts()), distance);
         
-        var visited = new HashSet<Vector3Int> { parts.Last.Value.Pos };
+        var visited = new HashSet<Vector3Int>();
 
         while (options.Count > 0)
         {
@@ -35,8 +48,9 @@ public class AStarStrategy : MoveStrategy
 
             if (curHead.Equals(apple))
             {
-                PaintPath(bounds, curPath);
-                return curPath.First.Value.Direction;
+                curPath.ToList().ForEach(_path.Enqueue);
+                PaintPath(2);
+                return _path.Dequeue().Direction;
             }
 
             visited.Add(curHead);
@@ -62,19 +76,21 @@ public class AStarStrategy : MoveStrategy
         return Vector3Int.zero;
     }
 
-    private void PaintPath(BoundsInt bounds, SnakeParts path)
+    private void PaintPath(int start)
     {
-        for (int x = bounds.xMin; x < bounds.xMax; x++)
+        for (int x = _bounds.xMin; x < _bounds.xMax; x++)
         {
-            for (int y = bounds.yMin; y < bounds.yMax; y++)
+            for (int y = _bounds.yMin; y < _bounds.yMax; y++)
             {
                 var pos = new Vector3Int(x, y);
-                _tilemap.SetTile(pos, _emptyTile);
+                _tilemap.SetTile(pos, null);
             }
         }
-        foreach (SnakePart part in path)
+
+        SnakePart[] parts = _path.ToArray();
+        for (int i = start; i < parts.Length; i++)
         {
-            _tilemap.SetTile(part.Pos, _pathTile);
+            _tilemap.SetTile(parts[i].Pos, _pathTile);
         }
     }
 }

@@ -38,7 +38,7 @@ public class SnakeManager : MonoBehaviour
         _moveStrategy = strategyType switch
         {
             StrategyType.Simple => new SimpleStrategy(),
-            StrategyType.AStar => new AStarStrategy(),
+            StrategyType.AStar => new AStarStrategy(_tilemap.cellBounds),
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -125,6 +125,7 @@ public class SnakeManager : MonoBehaviour
         _parts.Last.Value = head;
 
         // check new head pos for actions (collision, apple)
+        SnakeParts oldParts = _parts.Clone();
         Vector3Int newHeadPos = _parts.Last.Value.Pos + direction;
         TileDataHolder dataHolder = _mapManager.GetTileData(newHeadPos);
         if (dataHolder.collide)
@@ -133,13 +134,6 @@ public class SnakeManager : MonoBehaviour
             print($"Game over! Score: {_parts.Count - 3}");
             return;
         }
-
-        // clear snake tiles
-        foreach (SnakePart part in _parts)
-        {
-            _tilemap.SetTile(part.Pos, null);
-        }
-
         if (dataHolder.grow)
         {
             // move only head and add part
@@ -152,6 +146,11 @@ public class SnakeManager : MonoBehaviour
         else
             _parts.MoveInPlace();
 
+        // clear old snake tiles
+        foreach (SnakePart part in oldParts)
+        {
+            _tilemap.SetTile(part.Pos, null);
+        }
         // repaint snake on new positions
         foreach (SnakePart part in _parts)
         {

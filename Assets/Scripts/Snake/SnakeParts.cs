@@ -46,9 +46,18 @@ public class SnakeParts : LinkedList<SnakePart>
         {
             SnakePart curPart = curNode.Value;
 
-            curPart.Pos += curPart.Direction;
-
-            curPart.Direction = curNode.Next != null ? curNode.Next.Value.Direction : direction;
+            // body part, follow next part
+            if (curNode.Next != null)
+            {
+                curPart.Pos += curPart.Direction;
+                curPart.Direction = curNode.Next.Value.Direction;
+            }
+            // head, use given direction
+            else
+            {
+                curPart.Pos += direction;
+                curPart.Direction = direction;
+            }
 
             curNode.Value = curPart;
             curNode = curNode.Next;
