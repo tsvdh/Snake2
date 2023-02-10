@@ -33,6 +33,8 @@ public class AStarStrategy : MoveStrategy
             PaintPath(2);
             return _path.Dequeue().Direction;
         }
+        
+        long start = DateTimeOffset.Now.ToUnixTimeMilliseconds();
 
         // else compute new path
         var options = new PriorityQueue<Tuple<SnakeParts, SnakeParts>, int>();
@@ -48,6 +50,9 @@ public class AStarStrategy : MoveStrategy
 
             if (curHead.Equals(apple))
             {
+                long duration = DateTimeOffset.Now.ToUnixTimeMilliseconds() - start;
+                Debug.Log($"Decision took: {duration}");
+                
                 curPath.ToList().ForEach(_path.Enqueue);
                 PaintPath(2);
                 return _path.Dequeue().Direction;

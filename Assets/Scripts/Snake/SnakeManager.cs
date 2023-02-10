@@ -114,10 +114,7 @@ public class SnakeManager : MonoBehaviour
         }
         else
         {
-            long start = DateTimeOffset.Now.ToUnixTimeMilliseconds();
             direction = _moveStrategy.GetDirection(_parts, _tilemap.cellBounds, _appleManager.GetAppleLocation());
-            long duration = DateTimeOffset.Now.ToUnixTimeMilliseconds() - start;
-            print($"Decision took: {duration}");
         }
         
         SnakePart head = _parts.Last.Value;
