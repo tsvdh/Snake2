@@ -3,6 +3,9 @@
 public enum StrategyType
 {
     Simple,
-    AStar
+    AStar,
+    AStarNoSeparation,
+    AStarMorePaths,
+    AStarNoSeparationMorePaths
 }
 }

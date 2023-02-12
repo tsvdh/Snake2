@@ -17,12 +17,18 @@ public class AStarStrategy : MoveStrategy
     private BoundsInt _bounds;
     private Queue<SnakePart> _path;
 
-    public AStarStrategy(BoundsInt bounds)
+    private bool _noSeparateSpaces;
+    private bool _morePaths;
+
+    public AStarStrategy(BoundsInt bounds, bool noSeparateSpaces, bool morePaths)
     {
         _tilemap = GameObject.Find("Grid/Indicators").GetComponent<Tilemap>();
         _pathTile = Resources.Load<TileBase>("Tiles/Path");
         _bounds = bounds;
         _path = new Queue<SnakePart>();
+
+        _noSeparateSpaces = noSeparateSpaces;
+        _morePaths = morePaths;
     }
 
     public override Vector3Int GetDirection(SnakeParts parts, BoundsInt bounds, Vector3Int apple)
@@ -47,7 +53,8 @@ public class AStarStrategy : MoveStrategy
         {
             (SnakeParts curParts, SnakeParts curPath) = options.Dequeue();
             Vector3Int curHead = curParts.Last.Value.Pos;
-
+            visited.Add(curHead);
+            
             if (curHead.Equals(apple))
             {
                 long duration = DateTimeOffset.Now.ToUnixTimeMilliseconds() - start;
@@ -58,15 +65,7 @@ public class AStarStrategy : MoveStrategy
                 return _path.Dequeue().Direction;
             }
 
-            visited.Add(curHead);
-            
-            Dictionary<Vector3Int, bool> grid = GetGrid(curParts, bounds);
-            LinkedList<Vector3Int> possibleDirs = GetPossibleDirections(grid, curHead);
-
-            possibleDirs = new LinkedList<Vector3Int>(possibleDirs.Where(
-                possibleDir => !visited.Contains(curHead + possibleDir)));
-
-            foreach (Vector3Int possibleDir in possibleDirs)
+            void AddOption(Vector3Int possibleDir)
             {
                 SnakeParts newParts = curParts.CloneAndMove(possibleDir);
                 SnakeParts newPath = curPath.Clone();
@@ -74,6 +73,36 @@ public class AStarStrategy : MoveStrategy
                 int newDistance = newPath.Count + ManhattanDistance(curHead + possibleDir, apple);
                 
                 options.Enqueue(new Tuple<SnakeParts, SnakeParts>(newParts, newPath), newDistance);
+            }
+            
+            LinkedList<Vector3Int> possibleDirs = GetPossibleDirections(curParts, bounds, curHead);
+
+            var addMore = true;
+            if (_noSeparateSpaces)
+            {
+                foreach (Vector3Int possibleDir in possibleDirs)
+                {
+                    LinkedList<Vector3Int> adjacentPossibleDirs =
+                        GetPossibleDirections(curParts, bounds, curHead + possibleDir);
+
+                    if (adjacentPossibleDirs.Count != 1) 
+                        continue;
+                    
+                    AddOption(possibleDir);
+                    addMore = false;
+                    break;
+                }
+            }
+
+            if (!addMore) 
+                continue;
+            
+            foreach (Vector3Int possibleDir in possibleDirs)
+            {
+                if (visited.Contains(curHead + possibleDir))
+                    continue;
+                
+                AddOption(possibleDir);
             }
         }
 

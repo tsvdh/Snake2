@@ -40,26 +40,23 @@ public class SnakeParts : LinkedList<SnakePart>
 
     public void MoveInPlace(Vector3Int direction)
     {
-        LinkedListNode<SnakePart> curNode = this.First;
+        LinkedListNode<SnakePart> headNode = this.Last;
+        SnakePart headPart = headNode.Value;
+        headPart.Direction = direction;
+        headNode.Value = headPart;
 
+        LinkedListNode<SnakePart> curNode = this.First;
         while (curNode != null)
         {
             SnakePart curPart = curNode.Value;
 
-            // body part, follow next part
+            curPart.Pos += curPart.Direction;
             if (curNode.Next != null)
             {
-                curPart.Pos += curPart.Direction;
                 curPart.Direction = curNode.Next.Value.Direction;
             }
-            // head, use given direction
-            else
-            {
-                curPart.Pos += direction;
-                curPart.Direction = direction;
-            }
-
             curNode.Value = curPart;
+            
             curNode = curNode.Next;
         }
     }

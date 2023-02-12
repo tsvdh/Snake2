@@ -36,10 +36,15 @@ public class SnakeManager : MonoBehaviour
         _appleManager = FindObjectOfType<AppleManager>();
         _parts = new SnakeParts();
         _bodyTile = Resources.Load<TileBase>("Tiles/Body");
+
+        BoundsInt bounds = _tilemap.cellBounds;
         _moveStrategy = strategyType switch
         {
             StrategyType.Simple => new SimpleStrategy(),
-            StrategyType.AStar => new AStarStrategy(_tilemap.cellBounds),
+            StrategyType.AStar => new AStarStrategy(bounds, false, false),
+            StrategyType.AStarNoSeparation => new AStarStrategy(bounds, true, false),
+            StrategyType.AStarMorePaths => new AStarStrategy(bounds, false, true),
+            StrategyType.AStarNoSeparationMorePaths => new AStarStrategy(bounds, true, true),
             _ => throw new ArgumentOutOfRangeException()
         };
     }

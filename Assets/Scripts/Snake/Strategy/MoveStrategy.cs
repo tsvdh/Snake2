@@ -29,10 +29,16 @@ public abstract class MoveStrategy
 
         foreach (SnakePart part in parts)
         {
+            var bla = part.Pos;
             grid[part.Pos] = true;
         }
 
         return grid;
+    }
+
+    protected static LinkedList<Vector3Int> GetPossibleDirections(SnakeParts parts, BoundsInt bounds, Vector3Int pos)
+    {
+        return GetPossibleDirections(GetGrid(parts, bounds), pos);
     }
 
     protected static LinkedList<Vector3Int> GetPossibleDirections(Dictionary<Vector3Int, bool> grid, Vector3Int pos)
