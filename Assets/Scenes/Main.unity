@@ -3275,7 +3275,7 @@ MonoBehaviour:
   downButtons: 7300000012010000
   leftButtons: 6100000014010000
   rightButtons: 6400000013010000
-  moveInterval: 1
+  moveInterval: 0.2
   strategyType: 1
 --- !u!114 &1350632783
 MonoBehaviour:

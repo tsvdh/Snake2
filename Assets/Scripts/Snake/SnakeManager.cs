@@ -4,6 +4,7 @@ using Snake.Strategy;
 using TileData;
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using Utils;
 
 namespace Snake
 { 
@@ -75,7 +76,7 @@ public class SnakeManager : MonoBehaviour
             if (!tile || !_mapManager.GetTileData(tile).snake)
                 break;
 
-            var direction = (Vector3Int)QuaternionToDirection(_tilemap.GetTransformMatrix(curPos).rotation);
+            Vector3Int direction = Util.QuaternionToDirection(_tilemap.GetTransformMatrix(curPos).rotation);
             _parts.AddLast(new SnakePart { Pos = curPos, Direction = direction, Tile = tile });
 
             curPos += direction;
@@ -155,35 +156,12 @@ public class SnakeManager : MonoBehaviour
                 part.Pos,
                 part.Tile,
                 Color.white,
-                Matrix4x4.Rotate(DirectionToQuaternion((Vector2Int)part.Direction))
+                Matrix4x4.Rotate(Util.DirectionToQuaternion(part.Direction))
             ), true);
         }
     }
 
-    private static Vector2Int QuaternionToDirection(Quaternion quaternion)
-    {
-        // Default direction is to the right
-        return quaternion.eulerAngles.z switch
-        {
-            0 => Vector2Int.right,
-            90 => Vector2Int.up,
-            180 => Vector2Int.left,
-            270 => Vector2Int.down,
-            _ => throw new ArgumentException("must be one of the four primary angles", nameof(quaternion))
-        };
-    }
-
-    private static Quaternion DirectionToQuaternion(Vector2Int direction)
-    {
-        return direction switch
-        {
-            var v when v.Equals(Vector2Int.right) => Quaternion.Euler(0, 0, 0),
-            var v when v.Equals(Vector2Int.up) => Quaternion.Euler(0, 0, 90),
-            var v when v.Equals(Vector2Int.left) => Quaternion.Euler(0, 0, 180),
-            var v when v.Equals(Vector2Int.down) => Quaternion.Euler(0, 0, 270),
-            _ => throw new ArgumentException("must be one of the four primary directions", nameof(direction))
-        };
-    }
+    
 
     private Vector3Int? GetDirectionPressed()
     {

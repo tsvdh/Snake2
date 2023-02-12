@@ -95,7 +95,13 @@ public class AStarStrategy : MoveStrategy
         SnakePart[] parts = _path.ToArray();
         for (int i = start; i < parts.Length; i++)
         {
-            _tilemap.SetTile(parts[i].Pos, _pathTile);
+            _tilemap.SetTile(new TileChangeData(
+                parts[i].Pos, 
+                _pathTile,
+                Color.white,
+                Matrix4x4.Rotate(Util.DirectionToQuaternion(parts[i].Direction))
+            ), true);
+
         }
     }
 }
