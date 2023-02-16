@@ -10,6 +10,6 @@ namespace TileData
     {
         public TileBase[] tiles;
 
-        public bool grow, collide, snake;
+        public bool grow, collide, snake, wall;
     }
 }

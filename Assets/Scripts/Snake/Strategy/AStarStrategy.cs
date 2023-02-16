@@ -89,9 +89,11 @@ public class AStarStrategy : MoveStrategy
                 {
                     SnakeParts possibleParts = curParts.CloneAndMove(possibleDir);
                     Vector3Int possibleHead = curHead + possibleDir;
-                    
+
+                    Dictionary<Vector3Int, bool> grid = Util.GetGrid(possibleParts, _bounds);
+
                     var adjacentPossiblePositions = new LinkedList<Vector3Int>();
-                    foreach (Vector3Int adjacentPossibleDir in Util.GetPossibleDirections(possibleParts, _bounds, possibleHead))
+                    foreach (Vector3Int adjacentPossibleDir in Util.GetPossibleDirections(grid, possibleHead))
                     {
                         adjacentPossiblePositions.AddLast(possibleHead + adjacentPossibleDir);
                     }
@@ -112,36 +114,56 @@ public class AStarStrategy : MoveStrategy
                                         || adjacentPossiblePositions.First.Value.y == adjacentPossiblePositions.Last.Value.y;
                         TileDataHolder tileData = _mapManager.GetTileData(possibleHead + possibleDir);
 
-                        if (sameAxis && tileData.snake)
+                        if (sameAxis && !tileData.wall)
                             continue;
 
-                        Vector3Int a = adjacentPossiblePositions.First.Value;
-                        Vector3Int b = adjacentPossiblePositions.Last.Value;
-                        var searchA = new AStarSearch(_bounds, possibleParts, b, a);
-                        var searchB = new AStarSearch(_bounds, possibleParts, a, b);
-
-                        var connected = false;
-                        var canVisit = true;
-
-                        while (canVisit && !connected)
+                        if (sameAxis && tileData.wall)
                         {
-                            searchA.VisitNext();
-                            searchB.VisitNext();
+                            Vector3Int a = adjacentPossiblePositions.First.Value;
+                            Vector3Int b = adjacentPossiblePositions.Last.Value;
+                            var searchA = new AStarSearch(_bounds, possibleParts, b, a);
+                            var searchB = new AStarSearch(_bounds, possibleParts, a, b);
 
-                            if (searchA.Found() || searchB.Found())
-                                connected = true;
+                            var connected = false;
+                            var canVisit = true;
 
-                            if (!searchA.CanVisitNext() || !searchB.CanVisitNext())
-                                canVisit = false;
+                            while (canVisit && !connected)
+                            {
+                                searchA.VisitNext();
+                                searchB.VisitNext();
+
+                                if (searchA.Found() || searchB.Found())
+                                    connected = true;
+
+                                if (!searchA.CanVisitNext() || !searchB.CanVisitNext())
+                                    canVisit = false;
+                            }
+
+                            if (!connected)
+                                continue;
                         }
 
-                        if (!connected)
-                            continue;
+                        if (!sameAxis)
+                        {
+                            Vector3Int corner = GetFourthSquare(possibleHead, 
+                                adjacentPossiblePositions.First.Value,
+                                adjacentPossiblePositions.Last.Value);
+                            
+                            if (grid[corner])
+                                continue;
+                        }
                     }
 
                     if (adjacentPossiblePositions.Count == 3)
                     {
+                        Vector3Int ahead = possibleHead + possibleParts.Last.Value.Direction;
+                        adjacentPossiblePositions.Remove(ahead);
+                    
+                        Vector3Int cornerA = GetFourthSquare(possibleHead, ahead, adjacentPossiblePositions.First.Value);
+                        Vector3Int cornerB = GetFourthSquare(possibleHead, ahead, adjacentPossiblePositions.Last.Value);
                         
+                        if (grid[cornerA] || grid[cornerB])
+                            continue;
                     }
                 }
                 else
@@ -158,6 +180,11 @@ public class AStarStrategy : MoveStrategy
 
         Debug.Log("Could not find path");
         return Vector3Int.zero;
+    }
+
+    private Vector3Int GetFourthSquare(Vector3Int head, Vector3Int a, Vector3Int b)
+    {
+        return head + (a - head) + (b - head);
     }
 
     private void PaintPath(int start)
