@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using JetBrains.Annotations;
+using TileData;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 using Utils;
@@ -14,6 +14,8 @@ public class AStarStrategy : MoveStrategy
     private TileBase _emptyTile;
     private TileBase _pathTile;
 
+    private MapManager _mapManager;
+
     private BoundsInt _bounds;
     private Queue<SnakePart> _path;
 
@@ -24,6 +26,8 @@ public class AStarStrategy : MoveStrategy
     {
         _tilemap = GameObject.Find("Grid/Indicators").GetComponent<Tilemap>();
         _pathTile = Resources.Load<TileBase>("Tiles/Path");
+        _mapManager = UnityEngine.Object.FindObjectOfType<MapManager>();
+        
         _bounds = bounds;
         _path = new Queue<SnakePart>();
 
@@ -31,7 +35,7 @@ public class AStarStrategy : MoveStrategy
         _morePaths = morePaths;
     }
 
-    public override Vector3Int GetDirection(SnakeParts parts, BoundsInt bounds, Vector3Int apple)
+    public Vector3Int GetDirection(SnakeParts parts, Vector3Int target)
     {
         // if path exists return first step
         if (_path.Count > 0)
@@ -44,7 +48,7 @@ public class AStarStrategy : MoveStrategy
 
         // else compute new path
         var options = new PriorityQueue<Tuple<SnakeParts, SnakeParts>, int>();
-        int distance = ManhattanDistance(parts.Last.Value.Pos, apple);
+        int distance = Util.ManhattanDistance(parts.Last.Value.Pos, target);
         options.Enqueue(new Tuple<SnakeParts, SnakeParts>(parts, new SnakeParts()), distance);
         
         var visited = new HashSet<Vector3Int>();
@@ -55,7 +59,7 @@ public class AStarStrategy : MoveStrategy
             Vector3Int curHead = curParts.Last.Value.Pos;
             visited.Add(curHead);
             
-            if (curHead.Equals(apple))
+            if (curHead.Equals(target))
             {
                 long duration = DateTimeOffset.Now.ToUnixTimeMilliseconds() - start;
                 Debug.Log($"Decision took: {duration}");
@@ -70,40 +74,86 @@ public class AStarStrategy : MoveStrategy
                 SnakeParts newParts = curParts.CloneAndMove(possibleDir);
                 SnakeParts newPath = curPath.Clone();
                 newPath.AddLast(new SnakePart { Pos = curHead, Direction = possibleDir });
-                int newDistance = newPath.Count + ManhattanDistance(curHead + possibleDir, apple);
+                int newDistance = newPath.Count + Util.ManhattanDistance(curHead + possibleDir, target);
                 
                 options.Enqueue(new Tuple<SnakeParts, SnakeParts>(newParts, newPath), newDistance);
             }
             
-            LinkedList<Vector3Int> possibleDirs = GetPossibleDirections(curParts, bounds, curHead);
+            LinkedList<Vector3Int> possibleDirs = Util.GetPossibleDirections(curParts, _bounds, curHead);
 
-            var addMore = true;
-            if (_noSeparateSpaces)
-            {
-                foreach (Vector3Int possibleDir in possibleDirs)
-                {
-                    LinkedList<Vector3Int> adjacentPossibleDirs =
-                        GetPossibleDirections(curParts, bounds, curHead + possibleDir);
+            var chosenDirs = new LinkedList<Vector3Int>();
 
-                    if (adjacentPossibleDirs.Count != 1) 
-                        continue;
-                    
-                    AddOption(possibleDir);
-                    addMore = false;
-                    break;
-                }
-            }
-
-            if (!addMore) 
-                continue;
-            
             foreach (Vector3Int possibleDir in possibleDirs)
             {
-                if (visited.Contains(curHead + possibleDir))
-                    continue;
-                
-                AddOption(possibleDir);
+                if (_noSeparateSpaces)
+                {
+                    SnakeParts possibleParts = curParts.CloneAndMove(possibleDir);
+                    Vector3Int possibleHead = curHead + possibleDir;
+                    
+                    var adjacentPossiblePositions = new LinkedList<Vector3Int>();
+                    foreach (Vector3Int adjacentPossibleDir in Util.GetPossibleDirections(possibleParts, _bounds, possibleHead))
+                    {
+                        adjacentPossiblePositions.AddLast(possibleHead + adjacentPossibleDir);
+                    }
+
+                    if (adjacentPossiblePositions.Count == 1)
+                    {
+                        chosenDirs.Clear();
+                        chosenDirs.AddLast(possibleDir);
+                        break;
+                    }
+                    
+                    if (visited.Contains(possibleHead))
+                        continue;
+
+                    if (adjacentPossiblePositions.Count == 2)
+                    {
+                        bool sameAxis = adjacentPossiblePositions.First.Value.x == adjacentPossiblePositions.Last.Value.x
+                                        || adjacentPossiblePositions.First.Value.y == adjacentPossiblePositions.Last.Value.y;
+                        TileDataHolder tileData = _mapManager.GetTileData(possibleHead + possibleDir);
+
+                        if (sameAxis && tileData.snake)
+                            continue;
+
+                        Vector3Int a = adjacentPossiblePositions.First.Value;
+                        Vector3Int b = adjacentPossiblePositions.Last.Value;
+                        var searchA = new AStarSearch(_bounds, possibleParts, b, a);
+                        var searchB = new AStarSearch(_bounds, possibleParts, a, b);
+
+                        var connected = false;
+                        var canVisit = true;
+
+                        while (canVisit && !connected)
+                        {
+                            searchA.VisitNext();
+                            searchB.VisitNext();
+
+                            if (searchA.Found() || searchB.Found())
+                                connected = true;
+
+                            if (!searchA.CanVisitNext() || !searchB.CanVisitNext())
+                                canVisit = false;
+                        }
+
+                        if (!connected)
+                            continue;
+                    }
+
+                    if (adjacentPossiblePositions.Count == 3)
+                    {
+                        
+                    }
+                }
+                else
+                {
+                    if (visited.Contains(curHead + possibleDir))
+                        continue;
+                }
+
+                chosenDirs.AddLast(possibleDir);
             }
+            
+            chosenDirs.ToList().ForEach(AddOption);
         }
 
         Debug.Log("Could not find path");

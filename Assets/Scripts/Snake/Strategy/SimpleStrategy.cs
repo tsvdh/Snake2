@@ -2,22 +2,29 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Utils;
 
 namespace Snake.Strategy
 {
 public class SimpleStrategy : MoveStrategy
 {
-    public override Vector3Int GetDirection(SnakeParts parts, BoundsInt bounds, Vector3Int apple)
+    private BoundsInt _bounds;
+
+    public SimpleStrategy(BoundsInt bounds)
+    {
+        _bounds = bounds;
+    }
+    
+    public Vector3Int GetDirection(SnakeParts parts, Vector3Int target)
     {
         Vector3Int headPos = parts.Last.Value.Pos;
         
-        Dictionary<Vector3Int, bool> grid = GetGrid(parts, bounds);
-        LinkedList<Vector3Int> directions = GetPossibleDirections(grid, headPos);
+        LinkedList<Vector3Int> directions = Util.GetPossibleDirections(parts, _bounds, headPos);
 
         return directions
             .DefaultIfEmpty(Vector3Int.zero)
             .Select(direction => new Tuple<Vector3Int, int>(direction,
-                ManhattanDistance((headPos + direction), apple)))
+                Util.ManhattanDistance((headPos + direction), target)))
             .OrderBy(tuple => tuple.Item2)
             .First()
             .Item1;

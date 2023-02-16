@@ -25,21 +25,6 @@ public class MapManager : MonoBehaviour
         }
     }
 
-    private void Update()
-    {
-        if (Input.GetMouseButtonDown(0))
-        {
-            Vector3 mousePos = Camera.allCameras[0].ScreenToWorldPoint(Input.mousePosition);
-            Vector3Int gridPosition = _tilemap.WorldToCell(mousePos);
-            
-            // FindObjectOfType<AppleManager>().SpawnApple(gridPosition);
-            
-            TileBase tile = _tilemap.GetTile(gridPosition);
-            
-            // print($"Clicked at {gridPosition} on {tile}");
-        }
-    }
-
     public TileDataHolder GetTileData(Vector3Int pos)
     {
         return GetTileData(_tilemap.GetTile(pos));

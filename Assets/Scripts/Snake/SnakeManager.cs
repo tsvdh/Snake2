@@ -40,7 +40,7 @@ public class SnakeManager : MonoBehaviour
         BoundsInt bounds = _tilemap.cellBounds;
         _moveStrategy = strategyType switch
         {
-            StrategyType.Simple => new SimpleStrategy(),
+            StrategyType.Simple => new SimpleStrategy(bounds),
             StrategyType.AStar => new AStarStrategy(bounds, false, false),
             StrategyType.AStarNoSeparation => new AStarStrategy(bounds, true, false),
             StrategyType.AStarMorePaths => new AStarStrategy(bounds, false, true),
@@ -120,7 +120,7 @@ public class SnakeManager : MonoBehaviour
         }
         else
         {
-            direction = _moveStrategy.GetDirection(_parts, _tilemap.cellBounds, _appleManager.GetAppleLocation());
+            direction = _moveStrategy.GetDirection(_parts, _appleManager.GetAppleLocation());
         }
         
         SnakePart head = _parts.Last.Value;
