@@ -17,3 +17,4 @@ MonoBehaviour:
   grow: 0
   collide: 1
   snake: 0
+  wall: 1

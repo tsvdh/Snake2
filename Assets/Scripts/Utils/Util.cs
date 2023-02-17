@@ -79,5 +79,10 @@ public static class Util
         return new LinkedList<Vector3Int>(directions.Where(
             direction => !grid[pos + direction]));
     }
+    
+    public static Vector3Int GetFourthSquare(Vector3Int head, Vector3Int a, Vector3Int b)
+    {
+        return head + (a - head) + (b - head);
+    }
 }
 }

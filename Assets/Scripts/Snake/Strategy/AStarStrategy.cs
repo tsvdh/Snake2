@@ -125,9 +125,8 @@ public class AStarStrategy : MoveStrategy
                             var searchB = new AStarSearch(_bounds, possibleParts, a, b);
 
                             var connected = false;
-                            var canVisit = true;
 
-                            while (canVisit && !connected)
+                            while (!connected)
                             {
                                 searchA.VisitNext();
                                 searchB.VisitNext();
@@ -136,21 +135,38 @@ public class AStarStrategy : MoveStrategy
                                     connected = true;
 
                                 if (!searchA.CanVisitNext() || !searchB.CanVisitNext())
-                                    canVisit = false;
+                                    break;
                             }
 
                             if (!connected)
-                                continue;
+                            {
+                                chosenDirs.Clear();
+
+                                if (!searchA.CanVisitNext())
+                                    chosenDirs.AddLast(b - possibleHead);
+
+                                if (!searchB.CanVisitNext())
+                                    chosenDirs.AddLast(a - possibleHead);
+
+                                break;
+                            }
                         }
 
                         if (!sameAxis)
                         {
-                            Vector3Int corner = GetFourthSquare(possibleHead, 
+                            Vector3Int corner = Util.GetFourthSquare(possibleHead, 
                                 adjacentPossiblePositions.First.Value,
                                 adjacentPossiblePositions.Last.Value);
-                            
+
                             if (grid[corner])
-                                continue;
+                            {
+                                Vector3Int ahead = possibleHead + possibleParts.Last.Value.Direction;
+                                adjacentPossiblePositions.Remove(ahead);
+                                
+                                chosenDirs.Clear();
+                                chosenDirs.AddLast(adjacentPossiblePositions.First.Value - possibleHead);
+                                break;
+                            }
                         }
                     }
 
@@ -158,12 +174,27 @@ public class AStarStrategy : MoveStrategy
                     {
                         Vector3Int ahead = possibleHead + possibleParts.Last.Value.Direction;
                         adjacentPossiblePositions.Remove(ahead);
-                    
-                        Vector3Int cornerA = GetFourthSquare(possibleHead, ahead, adjacentPossiblePositions.First.Value);
-                        Vector3Int cornerB = GetFourthSquare(possibleHead, ahead, adjacentPossiblePositions.Last.Value);
+
+                        Vector3Int a = adjacentPossiblePositions.First.Value;
+                        Vector3Int b = adjacentPossiblePositions.Last.Value;
                         
+                        Vector3Int cornerA = Util.GetFourthSquare(possibleHead, ahead, a);
+                        Vector3Int cornerB = Util.GetFourthSquare(possibleHead, ahead, b);
+
                         if (grid[cornerA] || grid[cornerB])
-                            continue;
+                        {
+                            chosenDirs.Clear();
+                            if (grid[cornerA])
+                            {
+                                chosenDirs.AddLast(a - possibleHead);
+                                break;
+                            }
+                            if (grid[cornerB])
+                            {
+                                chosenDirs.AddLast(b - possibleHead);
+                                break;
+                            }
+                        }
                     }
                 }
                 else
@@ -180,11 +211,6 @@ public class AStarStrategy : MoveStrategy
 
         Debug.Log("Could not find path");
         return Vector3Int.zero;
-    }
-
-    private Vector3Int GetFourthSquare(Vector3Int head, Vector3Int a, Vector3Int b)
-    {
-        return head + (a - head) + (b - head);
     }
 
     private void PaintPath(int start)
