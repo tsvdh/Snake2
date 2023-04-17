@@ -76,8 +76,10 @@ public static class Util
         var directions = new LinkedList<Vector3Int>(
             new []{Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right});
 
-        return new LinkedList<Vector3Int>(directions.Where(
+        var bla = new LinkedList<Vector3Int>(directions.Where(
             direction => !grid[pos + direction]));
+
+        return bla;
     }
     
     public static Vector3Int GetFourthSquare(Vector3Int head, Vector3Int a, Vector3Int b)

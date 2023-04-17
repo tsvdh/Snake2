@@ -60,5 +60,31 @@ public class SnakeParts : LinkedList<SnakePart>
             curNode = curNode.Next;
         }
     }
+
+    public SnakeParts CloneAndGrow(Vector3Int direction)
+    {
+        SnakeParts newParts = this.Clone();
+        
+        newParts.GrowInPlace(direction);
+
+        return newParts;
+    }
+
+    public void GrowInPlace(Vector3Int direction)
+    {
+        Vector3Int newPos;
+        if (this.Last.Value.Direction == Vector3Int.zero)
+        {
+            newPos = this.Last.Value.Pos;
+            this.RemoveLast();
+        }
+        else 
+            newPos = this.Last.Value.Pos + this.Last.Value.Direction;
+        
+        this.AddLast(new SnakePart { 
+            Direction = direction, 
+            Pos =  newPos
+        });
+    }
 }
 }

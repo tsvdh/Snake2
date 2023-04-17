@@ -42,9 +42,9 @@ public class SnakeManager : MonoBehaviour
         {
             StrategyType.Simple => new SimpleStrategy(bounds),
             StrategyType.AStar => new AStarStrategy(bounds, false, false),
-            StrategyType.AStarNoSeparation => new AStarStrategy(bounds, true, false),
-            StrategyType.AStarMorePaths => new AStarStrategy(bounds, false, true),
-            StrategyType.AStarNoSeparationMorePaths => new AStarStrategy(bounds, true, true),
+            StrategyType.AStarNoSep => new AStarStrategy(bounds, true, false),
+            StrategyType.AStarAllPaths => new AStarStrategy(bounds, false, true),
+            StrategyType.AStarNoSepAllPaths => new AStarStrategy(bounds, true, true),
             _ => throw new ArgumentOutOfRangeException()
         };
     }
