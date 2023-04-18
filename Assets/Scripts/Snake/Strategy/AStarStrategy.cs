@@ -165,24 +165,12 @@ public class AStarStrategy : MoveStrategy
                     break;
                 }
 
-                // Vector3Int a = adjacentPossiblePositions.First.Value;
-                // adjacentPossiblePositions.RemoveFirst();
-
-                // var anySeparated = false;
-                // foreach (Vector3Int b in adjacentPossiblePositions)
-                // {
-                //     if (CheckSeparated(a, b, possibleParts))
-                //         anySeparated = true;
-                // }
-                //
-                // if (!anySeparated)
-                //     chosenDirs.AddLast(possibleDir);
-
-
                 if (adjacentPossiblePositions.Count == 2)
                 {
                     bool sameAxis = adjacentPossiblePositions.First.Value.x == adjacentPossiblePositions.Last.Value.x
                                     || adjacentPossiblePositions.First.Value.y == adjacentPossiblePositions.Last.Value.y;
+
+                    Vector3Int aheadDir = curParts.Last.Value.Direction;
 
                     if (sameAxis)
                     {
@@ -193,12 +181,30 @@ public class AStarStrategy : MoveStrategy
                 
                         if (stuck.HasValue)
                         {
-                            chosenDirs.Clear();
-                            chosenDirs.AddLast(stuck.Value - possibleHead);
-                            break;
+                            Vector3Int dirOfSmaller = stuck.Value - possibleHead;
+                            
+                            if (possibleDir == aheadDir)
+                            {
+                                // one tile gap straight ahead, go to smaller part
+                                chosenDirs.Clear();
+                                chosenDirs.AddLast(dirOfSmaller);
+                                break;
+                            }
+                            
+                            // gap not ahead, must be gap to the side
+                            
+                            if (aheadDir != dirOfSmaller)
+                            {
+                                // wrong direction, path not feasible
+                                chosenDirs.Clear();
+                                break;
+                            }
+                            
+                            // right direction, do not go to gap
+                            continue;
                         }
                     }
-                
+
                     if (!sameAxis)
                     {
                         Vector3Int corner = Util.GetFourthSquare(possibleHead, 
