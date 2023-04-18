@@ -54,39 +54,23 @@ internal class VisitedManager
 }
 
 public class AStarStrategy : MoveStrategy
-{
-    private Tilemap _tilemap;
-    private TileBase _emptyTile;
-    private TileBase _pathTile;
-
-    private MapManager _mapManager;
-
-    private BoundsInt _bounds;
-    private Queue<SnakePart> _path;
-
+{ 
     private bool _noSeparateSpaces;
     private bool _allPaths;
 
-    public AStarStrategy(BoundsInt bounds, bool noSeparateSpaces, bool allPaths)
+    public AStarStrategy(BoundsInt bounds, bool noSeparateSpaces, bool allPaths) : base(bounds)
     {
-        _tilemap = GameObject.Find("Grid/Indicators").GetComponent<Tilemap>();
-        _pathTile = Resources.Load<TileBase>("Tiles/Path");
-        _mapManager = UnityEngine.Object.FindObjectOfType<MapManager>();
-        
-        _bounds = bounds;
-        _path = new Queue<SnakePart>();
-
         _noSeparateSpaces = noSeparateSpaces;
         _allPaths = allPaths;
     }
 
-    public Vector3Int GetDirection(SnakeParts parts, Vector3Int target)
+    public override Vector3Int GetDirection(SnakeParts parts, Vector3Int target)
     {
         // if path exists return first step
-        if (_path.Count > 0)
+        if (Path.Count > 0)
         {
             PaintPath(2);
-            return _path.Dequeue().Direction;
+            return Path.Dequeue().Direction;
         }
         
         long start = DateTimeOffset.Now.ToUnixTimeMilliseconds();
@@ -123,12 +107,12 @@ public class AStarStrategy : MoveStrategy
             
             if (curHead.Equals(target))
             {
-                long duration = DateTimeOffset.Now.ToUnixTimeMilliseconds() - start;
-                Debug.Log($"Decision took: {duration}, {numOptions} considered");
+                long findTime = DateTimeOffset.Now.ToUnixTimeMilliseconds() - start;
+                Debug.Log($"Decision took: {findTime}, {numOptions} considered");
                 
-                curPath.ToList().ForEach(_path.Enqueue);
-                PaintPath(0);
-                return _path.Dequeue().Direction;
+                curPath.ToList().ForEach(Path.Enqueue);
+                PaintPath(2);
+                return Path.Dequeue().Direction;
             }
 
             void AddOption(Vector3Int possibleDir)
@@ -140,7 +124,7 @@ public class AStarStrategy : MoveStrategy
                 options.Enqueue(new Tuple<SnakeParts, SnakeParts>(newParts, newPath), newDistance);
             }
             
-            LinkedList<Vector3Int> possibleDirs = Util.GetPossibleDirections(curParts, _bounds, curHead);
+            LinkedList<Vector3Int> possibleDirs = Util.GetPossibleDirections(curParts, Bounds, curHead);
 
             var chosenDirs = new LinkedList<Vector3Int>();
             
@@ -165,7 +149,7 @@ public class AStarStrategy : MoveStrategy
                 SnakeParts possibleParts = curParts.CloneAndMove(possibleDir);
                 Vector3Int possibleHead = curHead + possibleDir;
 
-                Dictionary<Vector3Int, bool> grid = Util.GetGrid(possibleParts, _bounds);
+                Dictionary<Vector3Int, bool> grid = Util.GetGrid(possibleParts, Bounds);
 
                 var adjacentPossiblePositions = new LinkedList<Vector3Int>();
                 foreach (Vector3Int adjacentPossibleDir in Util.GetPossibleDirections(grid, possibleHead))
@@ -181,146 +165,111 @@ public class AStarStrategy : MoveStrategy
                     break;
                 }
 
-                Vector3Int a = adjacentPossiblePositions.First.Value;
-                adjacentPossiblePositions.RemoveFirst();
+                // Vector3Int a = adjacentPossiblePositions.First.Value;
+                // adjacentPossiblePositions.RemoveFirst();
 
-                var anySeparated = false;
-                foreach (Vector3Int b in adjacentPossiblePositions)
+                // var anySeparated = false;
+                // foreach (Vector3Int b in adjacentPossiblePositions)
+                // {
+                //     if (CheckSeparated(a, b, possibleParts))
+                //         anySeparated = true;
+                // }
+                //
+                // if (!anySeparated)
+                //     chosenDirs.AddLast(possibleDir);
+
+
+                if (adjacentPossiblePositions.Count == 2)
                 {
-                    if (CheckSeparated(a, b, possibleParts))
-                        anySeparated = true;
+                    bool sameAxis = adjacentPossiblePositions.First.Value.x == adjacentPossiblePositions.Last.Value.x
+                                    || adjacentPossiblePositions.First.Value.y == adjacentPossiblePositions.Last.Value.y;
+
+                    if (sameAxis)
+                    {
+                        Vector3Int a = adjacentPossiblePositions.First.Value;
+                        Vector3Int b = adjacentPossiblePositions.Last.Value;
+
+                        Vector3Int? stuck = CheckSeparated(a, b, possibleParts);
+                
+                        if (stuck.HasValue)
+                        {
+                            chosenDirs.Clear();
+                            chosenDirs.AddLast(stuck.Value - possibleHead);
+                            break;
+                        }
+                    }
+                
+                    if (!sameAxis)
+                    {
+                        Vector3Int corner = Util.GetFourthSquare(possibleHead, 
+                            adjacentPossiblePositions.First.Value,
+                            adjacentPossiblePositions.Last.Value);
+                
+                        if (grid[corner])
+                        {
+                            Vector3Int ahead = possibleHead + possibleParts.Last.Value.Direction;
+                            adjacentPossiblePositions.Remove(ahead);
+                            
+                            chosenDirs.Clear();
+                            chosenDirs.AddLast(adjacentPossiblePositions.First.Value - possibleHead);
+                            break;
+                        }
+                    }
+                }
+                
+                if (adjacentPossiblePositions.Count == 3)
+                {
+                    Vector3Int ahead = possibleHead + possibleParts.Last.Value.Direction;
+                    adjacentPossiblePositions.Remove(ahead);
+                
+                    Vector3Int a = adjacentPossiblePositions.First.Value;
+                    Vector3Int b = adjacentPossiblePositions.Last.Value;
+                    
+                    Vector3Int cornerA = Util.GetFourthSquare(possibleHead, ahead, a);
+                    Vector3Int cornerB = Util.GetFourthSquare(possibleHead, ahead, b);
+                
+                    if (grid[cornerA] || grid[cornerB])
+                    {
+                        chosenDirs.Clear();
+                        if (grid[cornerA])
+                        {
+                            chosenDirs.AddLast(a - possibleHead);
+                            break;
+                        }
+                        if (grid[cornerB])
+                        {
+                            chosenDirs.AddLast(b - possibleHead);
+                            break;
+                        }
+                    }
                 }
 
-                if (!anySeparated)
-                    chosenDirs.AddLast(possibleDir);
-
-
-                // if (adjacentPossiblePositions.Count == 2)
-                // {
-                //     bool sameAxis = adjacentPossiblePositions.First.Value.x == adjacentPossiblePositions.Last.Value.x
-                //                     || adjacentPossiblePositions.First.Value.y == adjacentPossiblePositions.Last.Value.y;
-                //     TileDataHolder tileData = _mapManager.GetTileData(possibleHead + possibleDir);
-                //
-                //     if (sameAxis && !tileData.wall)
-                //         continue;
-                //
-                //     if (sameAxis && tileData.wall)
-                //     {
-                //         Vector3Int a = adjacentPossiblePositions.First.Value;
-                //         Vector3Int b = adjacentPossiblePositions.Last.Value;
-                //         
-                //
-                //         if (!connected)
-                //         {
-                //             chosenDirs.Clear();
-                //
-                //             if (!searchA.CanVisitNext())
-                //                 chosenDirs.AddLast(b - possibleHead);
-                //
-                //             if (!searchB.CanVisitNext())
-                //                 chosenDirs.AddLast(a - possibleHead);
-                //
-                //             break;
-                //         }
-                //     }
-                //
-                //     if (!sameAxis)
-                //     {
-                //         Vector3Int corner = Util.GetFourthSquare(possibleHead, 
-                //             adjacentPossiblePositions.First.Value,
-                //             adjacentPossiblePositions.Last.Value);
-                //
-                //         if (grid[corner])
-                //         {
-                //             Vector3Int ahead = possibleHead + possibleParts.Last.Value.Direction;
-                //             adjacentPossiblePositions.Remove(ahead);
-                //             
-                //             chosenDirs.Clear();
-                //             chosenDirs.AddLast(adjacentPossiblePositions.First.Value - possibleHead);
-                //             break;
-                //         }
-                //     }
-                // }
-                //
-                // if (adjacentPossiblePositions.Count == 3)
-                // {
-                //     Vector3Int ahead = possibleHead + possibleParts.Last.Value.Direction;
-                //     adjacentPossiblePositions.Remove(ahead);
-                //
-                //     Vector3Int a = adjacentPossiblePositions.First.Value;
-                //     Vector3Int b = adjacentPossiblePositions.Last.Value;
-                //     
-                //     Vector3Int cornerA = Util.GetFourthSquare(possibleHead, ahead, a);
-                //     Vector3Int cornerB = Util.GetFourthSquare(possibleHead, ahead, b);
-                //
-                //     if (grid[cornerA] || grid[cornerB])
-                //     {
-                //         chosenDirs.Clear();
-                //         if (grid[cornerA])
-                //         {
-                //             chosenDirs.AddLast(a - possibleHead);
-                //             break;
-                //         }
-                //         if (grid[cornerB])
-                //         {
-                //             chosenDirs.AddLast(b - possibleHead);
-                //             break;
-                //         }
-                //     }
-                // }
+                chosenDirs.AddLast(possibleDir);
             }
             
             chosenDirs.ToList().ForEach(AddOption);
         }
 
-        Debug.Log("Could not find path");
+        long failTime = DateTimeOffset.Now.ToUnixTimeMilliseconds() - start;
+        Debug.Log($"Could not find path in: {failTime}, {numOptions} considered");
         return Vector3Int.zero;
     }
 
-    private bool CheckSeparated(Vector3Int a, Vector3Int b, SnakeParts parts)
+    private Vector3Int? CheckSeparated(Vector3Int a, Vector3Int b, SnakeParts parts)
     {
-        var searchA = new AStarSearch(_bounds, parts, b, a);
-        var searchB = new AStarSearch(_bounds, parts, a, b);
-        
-        var connected = false;
-        
-        while (!connected)
+        var searchA = new AStarSearch(Bounds, parts, b, a);
+        var searchB = new AStarSearch(Bounds, parts, a, b);
+
+        while (searchA.CanVisitNext() && searchB.CanVisitNext())
         {
             searchA.VisitNext();
             searchB.VisitNext();
-        
+
             if (searchA.Found() || searchB.Found())
-                connected = true;
-        
-            if (!searchA.CanVisitNext() || !searchB.CanVisitNext())
-                break;
+                return null;
         }
 
-        return !connected;
-    }
-
-    private void PaintPath(int start)
-    {
-        for (int x = _bounds.xMin; x < _bounds.xMax; x++)
-        {
-            for (int y = _bounds.yMin; y < _bounds.yMax; y++)
-            {
-                var pos = new Vector3Int(x, y);
-                _tilemap.SetTile(pos, null);
-            }
-        }
-
-        SnakePart[] parts = _path.ToArray();
-        for (int i = start; i < parts.Length; i++)
-        {
-            _tilemap.SetTile(new TileChangeData(
-                parts[i].Pos, 
-                _pathTile,
-                Color.white,
-                Matrix4x4.Rotate(Util.DirectionToQuaternion(parts[i].Direction))
-            ), true);
-
-        }
+        return !searchA.CanVisitNext() ? b : a;
     }
 }
 }

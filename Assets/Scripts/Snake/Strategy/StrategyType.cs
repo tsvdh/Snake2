@@ -6,6 +6,7 @@ public enum StrategyType
     AStar,
     AStarNoSep,
     AStarAllPaths,
-    AStarNoSepAllPaths
+    AStarNoSepAllPaths,
+    Edge
 }
 }

@@ -33,6 +33,16 @@ public static class Util
             _ => throw new ArgumentException("must be one of the four primary directions", nameof(direction))
         };
     }
+
+    public static Vector3Int Rotate(Vector3Int vecToRotate, float degrees)
+    {
+        Quaternion quaternion = DirectionToQuaternion(vecToRotate);
+        Vector3 angles = quaternion.eulerAngles;
+        angles.z += degrees;
+        quaternion.eulerAngles = angles;
+
+        return QuaternionToDirection(quaternion);
+    }
     
     public static int ManhattanDistance(Vector3Int a, Vector3Int b)
     {

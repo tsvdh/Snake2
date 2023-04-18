@@ -8,18 +8,13 @@ namespace Snake.Strategy
 {
 public class SimpleStrategy : MoveStrategy
 {
-    private BoundsInt _bounds;
-
-    public SimpleStrategy(BoundsInt bounds)
-    {
-        _bounds = bounds;
-    }
+    public SimpleStrategy(BoundsInt bounds) : base(bounds) { }
     
-    public Vector3Int GetDirection(SnakeParts parts, Vector3Int target)
+    public override Vector3Int GetDirection(SnakeParts parts, Vector3Int target)
     {
         Vector3Int headPos = parts.Last.Value.Pos;
         
-        LinkedList<Vector3Int> directions = Util.GetPossibleDirections(parts, _bounds, headPos);
+        LinkedList<Vector3Int> directions = Util.GetPossibleDirections(parts, Bounds, headPos);
 
         return directions
             .DefaultIfEmpty(Vector3Int.zero)

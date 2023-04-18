@@ -131,7 +131,7 @@ public class SnakeManager : MonoBehaviour
         SnakeParts oldParts = _parts.Clone();
         Vector3Int newHeadPos = _parts.Last.Value.Pos + direction;
         TileDataHolder dataHolder = _mapManager.GetTileData(newHeadPos);
-        if (dataHolder.collide)
+        if (dataHolder.collide && newHeadPos != _parts.First.Value.Pos)
         {
             moveInterval = 1000;
             print($"Game over! Score: {_parts.Count - 3}");
