@@ -2,11 +2,17 @@
 {
 public enum StrategyType
 {
+    None,
     Simple,
     AStar,
-    AStarNoSep,
-    AStarAllPaths,
-    AStarNoSepAllPaths,
     Edge
 }
+
+public enum AStarComponent
+{
+    NoSep,
+    AllPaths,
+    FavorEdge
+}
+
 }

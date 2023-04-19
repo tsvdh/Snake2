@@ -54,14 +54,12 @@ internal class VisitedManager
 }
 
 public class AStarStrategy : MoveStrategy
-{ 
-    private bool _noSeparateSpaces;
-    private bool _allPaths;
+{
+    private LinkedList<AStarComponent> _components;
 
-    public AStarStrategy(BoundsInt bounds, bool noSeparateSpaces, bool allPaths) : base(bounds)
+    public AStarStrategy(BoundsInt bounds, LinkedList<AStarComponent> components) : base(bounds)
     {
-        _noSeparateSpaces = noSeparateSpaces;
-        _allPaths = allPaths;
+        _components = components;
     }
 
     public override Vector3Int GetDirection(SnakeParts parts, Vector3Int target)
@@ -77,17 +75,17 @@ public class AStarStrategy : MoveStrategy
 
         // else compute new path
         
-        // options: queue of (current snake, path traveled by head), dist to target
-        var options = new PriorityQueue<Tuple<SnakeParts, SnakeParts>, int>();
+        // options: queue of (current snake, path traveled by head, score of path), score of path
+        var options = new PriorityQueue<Tuple<SnakeParts, SnakeParts, int>, int>();
         
         // Init base path with only starting point
         var path = new SnakeParts();
         path.AddLast(new SnakePart { Pos = parts.Last.Value.Pos });
         
         int distance = Util.ManhattanDistance(parts.Last.Value.Pos, target);
-        options.Enqueue(new Tuple<SnakeParts, SnakeParts>(parts, path), distance);
+        options.Enqueue(new Tuple<SnakeParts, SnakeParts, int>(parts, path, distance), distance);
 
-        var visited = new VisitedManager(_allPaths);
+        var visited = new VisitedManager(_components.Contains(AStarComponent.AllPaths));
 
         var numOptions = 0;
 
@@ -101,10 +99,10 @@ public class AStarStrategy : MoveStrategy
 
             numOptions++;
             
-            (SnakeParts curParts, SnakeParts curPath) = options.Dequeue();
+            (SnakeParts curParts, SnakeParts curPath, int curScore) = options.Dequeue();
             Vector3Int curHead = curParts.Last.Value.Pos;
             visited.Add(curPath);
-            
+
             if (curHead.Equals(target))
             {
                 long findTime = DateTimeOffset.Now.ToUnixTimeMilliseconds() - start;
@@ -118,10 +116,19 @@ public class AStarStrategy : MoveStrategy
             void AddOption(Vector3Int possibleDir)
             {
                 SnakeParts newParts = curParts.CloneAndMove(possibleDir);
+                Vector3Int newHead = newParts.Last.Value.Pos;
                 SnakeParts newPath = curPath.CloneAndGrow(possibleDir);
-                int newDistance = newPath.Count + Util.ManhattanDistance(curHead + possibleDir, target);
 
-                options.Enqueue(new Tuple<SnakeParts, SnakeParts>(newParts, newPath), newDistance);
+                // update distance score
+                int newScore = curScore + (Util.ManhattanDistance(newHead, target) 
+                                           - Util.ManhattanDistance(curHead, target));
+
+                // apply edge favoring score
+                if (_components.Contains(AStarComponent.FavorEdge)
+                    && Util.GetPossibleDirections(newParts, Bounds, newHead).Count < 3) 
+                    newScore--;
+
+                options.Enqueue(new Tuple<SnakeParts, SnakeParts, int>(newParts, newPath, newScore), newScore);
             }
             
             LinkedList<Vector3Int> possibleDirs = Util.GetPossibleDirections(curParts, Bounds, curHead);
@@ -137,7 +144,7 @@ public class AStarStrategy : MoveStrategy
                     // already checked path
                     continue;
                 
-                if (!_noSeparateSpaces)
+                if (!_components.Contains(AStarComponent.NoSep))
                 {
                     // nothing to be done, add direction
                     chosenDirs.AddLast(possibleDir);

@@ -7,6 +7,8 @@ namespace Snake
 
 public class SnakeParts : LinkedList<SnakePart>
 {
+    
+    
     public SnakeParts Clone()
     {
         var result = new SnakeParts();

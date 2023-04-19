@@ -27,6 +27,9 @@ public class SnakeManager : MonoBehaviour
     private Vector3Int? _secondDirection;
 
     [SerializeField] private StrategyType strategyType;
+    [SerializeField] private bool aStarNoSep;
+    [SerializeField] private bool aStarAllPaths;
+    [SerializeField] private bool aStarFavorEdge;
     private MoveStrategy _moveStrategy;
 
     private void Awake()
@@ -38,13 +41,20 @@ public class SnakeManager : MonoBehaviour
         _bodyTile = Resources.Load<TileBase>("Tiles/Body");
 
         BoundsInt bounds = _tilemap.cellBounds;
+
+        var aStarComponents = new LinkedList<AStarComponent>();
+        if (aStarNoSep)
+            aStarComponents.AddLast(AStarComponent.NoSep);
+        if (aStarAllPaths)
+            aStarComponents.AddLast(AStarComponent.AllPaths);
+        if (aStarFavorEdge)
+            aStarComponents.AddLast(AStarComponent.FavorEdge);
+        
         _moveStrategy = strategyType switch
         {
+            StrategyType.None => null,
             StrategyType.Simple => new SimpleStrategy(bounds),
-            StrategyType.AStar => new AStarStrategy(bounds, false, false),
-            StrategyType.AStarNoSep => new AStarStrategy(bounds, true, false),
-            StrategyType.AStarAllPaths => new AStarStrategy(bounds, false, true),
-            StrategyType.AStarNoSepAllPaths => new AStarStrategy(bounds, true, true),
+            StrategyType.AStar => new AStarStrategy(bounds, aStarComponents),
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -118,9 +128,13 @@ public class SnakeManager : MonoBehaviour
             _firstDirection = _secondDirection;
             _secondDirection = null;
         }
-        else
+        else if (_moveStrategy != null)
         {
             direction = _moveStrategy.GetDirection(_parts, _appleManager.GetAppleLocation());
+        }
+        else
+        {
+            direction = _parts.Last.Value.Direction;
         }
         
         SnakePart head = _parts.Last.Value;
